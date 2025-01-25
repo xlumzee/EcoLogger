@@ -25,7 +25,7 @@ use('mongodbVSCodePlaygroundDB');
 // ]);
 
 db.getCollection('WeatherData').insertMany(
-[{"sensorid": "sensor-002",
+[{"sensorid": "sensor-001",
   "temperature": 22,
   "humidity": 50,
   "latitude": 11,
@@ -39,7 +39,7 @@ db.getCollection('WeatherData').insertMany(
     "longitude": 70,
     "timestamp": ISODate("2025-01-01T10:30:00Z")},
 
-   {"sensorid": "sensor-002",
+   {"sensorid": "sensor-003",
     "temperature": 22,
     "humidity": 50,
     "latitude": 11,
@@ -48,20 +48,14 @@ db.getCollection('WeatherData').insertMany(
 
 ]);
 
-// Run a find command to view items sold on April 4th, 2014.
-const salesOnApril4th = db.getCollection('sales').find({
-  date: { $gte: new Date('2014-04-04'), $lt: new Date('2014-04-05') }
+
+// 1. Count how many readings occurred on Jan 1st, 2025.
+const readingsOnJan1 = db.getCollection('WeatherData').find({
+  timestamp: {
+    $gte: new Date('2025-01-01T00:00:00Z'),
+    $lt: new Date('2025-01-02T00:00:00Z')
+  }
 }).count();
 
-// Print a message to the output window.
-console.log(`${salesOnApril4th} sales occurred in 2014.`);
+console.log(`${readingsOnJan1} readings occurred on January 1st, 2025.`);
 
-// Here we run an aggregation and open a cursor to the results.
-// Use '.toArray()' to exhaust the cursor to return the whole result set.
-// You can use '.hasNext()/.next()' to iterate through the cursor page by page.
-db.getCollection('sales').aggregate([
-  // Find all of the sales that occurred in 2014.
-  { $match: { date: { $gte: new Date('2014-01-01'), $lt: new Date('2015-01-01') } } },
-  // Group the total sales for each product.
-  { $group: { _id: '$item', totalSaleAmount: { $sum: { $multiply: [ '$price', '$quantity' ] } } } }
-]);
