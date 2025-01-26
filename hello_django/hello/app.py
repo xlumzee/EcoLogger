@@ -57,8 +57,7 @@ def latest_data():
         "sensorid": latest_data.get("sensorid", "N/A"),
         "temperature": latest_data.get("temperature", "N/A"),
         "humidity": latest_data.get("humidity", "N/A"),
-        "latitude": latest_data.get("latitude", "N/A"),
-        "longitude": latest_data.get("longitude", "N/A"),
+        "position": f"({latest_data.get('latitude', 'N/A')}, {latest_data.get('longitude', 'N/A')})",
         "timestamp": str(latest_data.get("timestamp", "N/A"))
     }
 
