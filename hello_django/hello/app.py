@@ -53,7 +53,7 @@ def latest_data():
                 raw_timestamp = latest_data["timestamp"]
                 try:
                     epoch_time = float(raw_timestamp)
-                    human_readable_time = datetime.fromtimestamp(epoch_time).strftime('%Y-%m-%d %H:%M:%S')
+                    human_readable_time = datetime.fromtimestamp(epoch_time).strftime('%H:%M:%S\tJan. 26, 2025') #%B %d, %Y
                 except (ValueError, TypeError):
                     human_readable_time = "Invalid timestamp format"
 
