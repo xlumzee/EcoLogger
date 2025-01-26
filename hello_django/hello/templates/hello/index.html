@@ -9,6 +9,7 @@
  <link rel="stylesheet" href="{{ url_for('static', filename='css/styleguide.css') }}">
  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+ <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
  <style>
    body {
      font-family: 'Poppins', sans-serif;
@@ -102,7 +103,6 @@
      box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.2);
    }
 
-
    /* Responsive Design */
    @media (max-width: 768px) {
      .nav-links {
@@ -122,7 +122,6 @@
      }
    }
 
-
    @media (max-width: 480px) {
      .header {
        font-size: 1.5rem;
@@ -138,24 +137,75 @@
  </style>
  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
  <script>
+    let map, marker, refreshInterval = 2000, temperatureUnit = 'celsius';
+
     // Function to fetch the latest data and update the dashboard
     function updateDashboard() {
-        fetch('/latest-data')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('temperature').textContent = data.temperature + "°C";
-                document.getElementById('humidity').textContent = data.humidity + "%";
-                document.getElementById('position').textContent = data.position;
-                document.getElementById('timestamp').textContent = data.timestamp;
-            })
-            .catch(error => console.error('Error fetching data:', error));
+      fetch('/latest-data')
+        .then(response => response.json())
+        .then(data => {
+          const temperature = temperatureUnit === 'celsius'
+            ? data.temperature
+            : (data.temperature * 9/5 + 32).toFixed(1); // Convert to Fahrenheit if needed
+          const unitSymbol = temperatureUnit === 'celsius' ? '°C' : '°F';
+
+          document.getElementById('temperature').textContent = temperature + unitSymbol;
+          document.getElementById('humidity').textContent = data.humidity + "%";
+          document.getElementById('position').textContent = data.position;
+          document.getElementById('timestamp').textContent = data.timestamp;
+
+          // Update the map
+          updateMap(data.latitude, data.longitude);
+        })
+        .catch(error => console.error('Error fetching data:', error));
     }
 
-    // Refresh dashboard data every 2 seconds
-    setInterval(updateDashboard, 2000);
+    // Function to update the map dynamically
+    function updateMap(lat, lon) {
+      if (!map) {
+        map = L.map('map-container').setView([lat, lon], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
 
-    // Initial fetch when the page loads
-    document.addEventListener('DOMContentLoaded', updateDashboard);
+        marker = L.marker([lat, lon]).addTo(map)
+          .bindPopup(`Position: (${lat}, ${lon})`).openPopup();
+      } else {
+        marker.setLatLng([lat, lon]).bindPopup(`Position: (${lat}, ${lon})`).openPopup();
+        map.setView([lat, lon], 13);
+      }
+    }
+
+    // Function to handle unit changes
+    function handleUnitChange() {
+      const unitSelect = document.getElementById('units');
+      unitSelect.addEventListener('change', () => {
+        temperatureUnit = unitSelect.value;
+        updateDashboard(); // Refresh data to reflect the change
+      });
+    }
+
+    // Function to handle update interval changes
+    function handleIntervalChange() {
+      const intervalInput = document.getElementById('update-interval');
+      intervalInput.addEventListener('input', () => {
+        const interval = parseInt(intervalInput.value) * 1000; // Convert seconds to milliseconds
+        if (interval >= 1000) { // Minimum 1 second
+          refreshInterval = interval;
+          clearInterval(refreshTimer); // Reset the timer
+          refreshTimer = setInterval(updateDashboard, refreshInterval);
+        }
+      });
+    }
+
+    // Initialize the page
+    let refreshTimer;
+    document.addEventListener('DOMContentLoaded', () => {
+      updateDashboard();
+      refreshTimer = setInterval(updateDashboard, refreshInterval); // Start auto-refresh
+      handleUnitChange(); // Setup temperature unit change handler
+      handleIntervalChange(); // Setup update interval change handler
+    });
  </script>
 </head>
 <body>
@@ -171,57 +221,41 @@
    </nav>
  </header>
 
-
  <main>
    <!-- Dashboard Section -->
    <section id="dashboard" class="dashboard">
-    <h2>Dashboard</h2>
-    <div class="metrics">
-      <div class="metric">
-        <h3>Temperature</h3>
-        <p id="temperature">Loading...</p>
-      </div>
-      <div class="metric">
-        <h3>Humidity</h3>
-        <p id="humidity">Loading...</p>
-      </div>
-      <div class="metric">
-        <h3>Position</h3>
-        <p id="position">Loading...</p>
-      </div>
-      <div class="metric">
-        <h3>Last Updated</h3>
-        <p id="timestamp">Fetching data...</p>
-      </div>
-    </div>
-  </section>
-  
-
+     <h2>Dashboard</h2>
+     <div class="metrics">
+       <div class="metric">
+         <h3>Temperature</h3>
+         <p id="temperature">Loading...</p>
+       </div>
+       <div class="metric">
+         <h3>Humidity</h3>
+         <p id="humidity">Loading...</p>
+       </div>
+       <div class="metric">
+         <h3>Position</h3>
+         <p id="position">(Loading...)</p>
+       </div>
+       <div class="metric">
+         <h3>Last Updated</h3>
+         <p id="timestamp">Fetching data...</p>
+       </div>
+     </div>
+   </section>
 
    <!-- Live Map Section -->
    <section id="map" class="live-map">
-    <h2>Live Map</h2>
-    <div id="map-container"></div>
-    <script>
-      var lat = "{{ latitude }}";
-      var lon = "{{ longitude }}";
-      var map = L.map('map-container').setView([lat, lon], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
-      L.marker([lat, lon]).addTo(map)
-        .bindPopup('Current Location: ' + lat + ', ' + lon)
-        .openPopup();
-    </script>
-  </section>
-  
+     <h2>Live Map</h2>
+     <div id="map-container"></div>
+   </section>
 
    <!-- Historical Data Section -->
    <section id="historical" class="historical">
      <h2>Historical Data</h2>
      <div id="chart-container">Chart Placeholder</div>
    </section>
-
 
    <!-- Settings Section -->
    <section id="settings" class="settings">
@@ -234,16 +268,13 @@
        </select>
        <br>
        <label for="update-interval">Update Interval:</label>
-       <input type="number" id="update-interval" min="1" max="60" value="5"> minutes
+       <input type="number" id="update-interval" min="1" max="60" value="2"> seconds
      </form>
    </section>
  </main>
 
-
  <footer class="footer">
    <p>&copy; 2025 Micro Weather Station. All rights reserved.</p>
  </footer>
- <h1>Welcome to the Micro Weather Station</h1>
- <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo">
 </body>
 </html>
