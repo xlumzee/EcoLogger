@@ -10,6 +10,10 @@
   --text-color: #2c3e50;
   --light-text-color: #ffffff;
   --font-family: 'Poppins', sans-serif;
+  --font-weight-regular: 400;
+  --font-weight-bold: 600;
+  --base-font-size: 16px;
+  --line-height: 1.5;
 }
 
 /* Global box sizing and font smoothing */
@@ -22,7 +26,7 @@
 html, body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  min-height: 100vh;
   font-family: var(--font-family);
   background: var(--secondary-color);
   color: var(--text-color);
@@ -30,7 +34,7 @@ html, body {
 
 /* Accessibility: Focus styles for interactive elements */
 button:focus-visible, a:focus-visible {
-  outline: 2px solid var(--primary-color) !important;
+  outline: 3px dashed var(--primary-color);
   outline-offset: 3px;
 }
 
@@ -45,10 +49,14 @@ a:hover {
   color: var(--primary-color);
 }
 
+a:active {
+  color: #00376b;
+}
+
 /* Button styles for consistency */
 button {
   font-family: var(--font-family);
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   background: var(--primary-color);
   color: var(--light-text-color);
   border: none;
@@ -67,13 +75,19 @@ button:active {
   transform: translateY(0);
 }
 
+button:disabled {
+  background: #ccc;
+  color: #666;
+  cursor: not-allowed;
+}
+
 /* Input and form styles */
 input, select {
   font-family: var(--font-family);
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 6px;
-  font-size: 16px;
+  font-size: var(--base-font-size);
 }
 
 input:focus, select:focus {
