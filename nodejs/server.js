@@ -2,21 +2,18 @@
 const express = require('express');
 const mongoose = require('mongoose');
 
-// If you prefer environment variables, install dotenv and do:
-// require('dotenv').config();
-
 const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware to parse JSON from incoming requests
 app.use(express.json());
 
-// --- 1) Connect to MongoDB Atlas ---
-
-const uri = 'mongodb+srv://as7108:EgqPUvQ1xhoAHZkp@microwet.pjzpl.mongodb.net/';
+// 1) Connect to MongoDB Atlas
+// - Add your desired database name after the slash below (e.g., /myDatabase)
+const uri = 'mongodb+srv://as7108:EgqPUvQ1xhoAHZkp@microwet.pjzpl.mongodb.net/?retryWrites=true&w=majority';
 
 mongoose
-  .connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect(uri)
   .then(() => {
     console.log('Connected to MongoDB Atlas');
   })
@@ -24,26 +21,34 @@ mongoose
     console.error('Error connecting to MongoDB Atlas:', err);
   });
 
-// --- 2) Define a Mongoose schema/model for sensor data ---
-
-// define the variables that the esp32 is sending------------------------
+// 2) Define a Mongoose schema/model for sensor data
+//    The ESP sends: { "Time": "1/25/2025 20:17:54", "Temperature": "24.34" }
 const sensorDataSchema = new mongoose.Schema({
-  //deviceId: String,
-  temperature: Number,
-  //humidity: Number,
-  timestamp: { type: Date, default: Date.now },
-  // add fields that match the JSON you send from the ESP32
+  timestamp: Date,    // We'll store "Time" as a Date
+  temperature: Number // We'll store "Temperature" as a Number
 });
 
 const SensorData = mongoose.model('SensorData', sensorDataSchema);
 
-// --- 3) Set up the POST endpoint to handle ESP32 data ---
+// 3) POST endpoint to handle ESP data
 app.post('/data', async (req, res) => {
   try {
-    // req.body is the JSON data from the ESP32
-    const sensorData = new SensorData(req.body);
+    // Example incoming JSON:
+    // { "Time": "1/25/2025 20:17:54", "Temperature": "24.34" }
+    const rawTime = req.body.Time;
+    const rawTemperature = req.body.Temperature;
 
-    // Save data in the DB
+    // Convert incoming strings to the correct types
+    const timestamp = new Date(rawTime);
+    const temperature = parseFloat(rawTemperature);
+
+    // Create a new document
+    const sensorData = new SensorData({
+      timestamp,
+      temperature
+    });
+
+    // Save to the database
     await sensorData.save();
 
     console.log('Received data:', sensorData);
@@ -54,7 +59,7 @@ app.post('/data', async (req, res) => {
   }
 });
 
-// --- 4) Start the server ---
+// 4) Start the server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
