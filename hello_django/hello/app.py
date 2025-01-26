@@ -27,7 +27,13 @@ except Exception as e:
 
 @app.route('/')
 def dashboard():
-    """Fetch the latest weather data and render it."""
+    """Render the main dashboard."""
+    return render_template('hello/index.html')
+
+
+@app.route('/latest-data')
+def latest_data():
+    """Fetch the latest weather data as JSON."""
     # Default fallback data
     latest_data = {
         "sensorid": "N/A",
@@ -46,16 +52,17 @@ def dashboard():
         except Exception as e:
             logging.error(f"Error retrieving data from MongoDB: {e}")
 
-    # Render data to the HTML template
-    return render_template(
-        'hello/index.html',
-        sensorid=latest_data.get("sensorid", "N/A"),
-        temperature=latest_data.get("temperature", "N/A"),
-        humidity=latest_data.get("humidity", "N/A"),
-        latitude=latest_data.get("latitude", "N/A"),
-        longitude=latest_data.get("longitude", "N/A"),
-        timestamp=latest_data.get("timestamp", "N/A")
-    )
+    # Format the data to be JSON-serializable
+    formatted_data = {
+        "sensorid": latest_data.get("sensorid", "N/A"),
+        "temperature": latest_data.get("temperature", "N/A"),
+        "humidity": latest_data.get("humidity", "N/A"),
+        "latitude": latest_data.get("latitude", "N/A"),
+        "longitude": latest_data.get("longitude", "N/A"),
+        "timestamp": str(latest_data.get("timestamp", "N/A"))
+    }
+
+    return jsonify(formatted_data)
 
 
 @app.route('/test-db')
