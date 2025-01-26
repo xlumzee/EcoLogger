@@ -35,7 +35,6 @@ def dashboard():
 @app.route('/latest-data')
 def latest_data():
     """Fetch the latest weather data as JSON."""
-    # Default fallback data
     latest_data = {
         "sensorid": "N/A",
         "temperature": "N/A",
@@ -47,30 +46,16 @@ def latest_data():
 
     if collection is not None:
         try:
-            # Fetch the latest document based on the timestamp
             latest_data = collection.find_one(sort=[("timestamp", -1)]) or latest_data
             logging.info(f"Latest data retrieved: {latest_data}")
 
-            # Convert timestamp to human-readable format
             if "timestamp" in latest_data:
                 raw_timestamp = latest_data["timestamp"]
-
-                # Check and handle different formats
                 try:
-                    # Case 1: ISO 8601 format string
-                    human_readable_time = datetime.fromisoformat(raw_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                    epoch_time = float(raw_timestamp)
+                    human_readable_time = datetime.fromtimestamp(epoch_time).strftime('%Y-%m-%d %H:%M:%S')
                 except (ValueError, TypeError):
-                    try:
-                        # Case 2: Custom format string (e.g., '2025/01/25 15:30:00')
-                        human_readable_time = datetime.strptime(raw_timestamp, '%Y/%m/%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
-                    except (ValueError, TypeError):
-                        try:
-                            # Case 3: Epoch time (int or string)
-                            epoch_time = float(raw_timestamp)  # Ensure it's a float for seconds
-                            human_readable_time = datetime.fromtimestamp(epoch_time).strftime('%Y-%m-%d %H:%M:%S')
-                        except (ValueError, TypeError):
-                            # Case 4: Invalid or unrecognized format
-                            human_readable_time = "Invalid timestamp format"
+                    human_readable_time = "Invalid timestamp format"
 
                 latest_data["timestamp"] = human_readable_time
             else:
@@ -79,7 +64,6 @@ def latest_data():
         except Exception as e:
             logging.error(f"Error retrieving data from MongoDB: {e}")
 
-    # Format the data to be JSON-serializable
     formatted_data = {
         "sensorid": latest_data.get("sensorid", "N/A"),
         "temperature": latest_data.get("temperature", "N/A"),
@@ -93,12 +77,39 @@ def latest_data():
     return jsonify(formatted_data)
 
 
+@app.route('/historical-data')
+def historical_data():
+    """Fetch the last 50 records for historical data visualization."""
+    historical_records = []
+
+    if collection is not None:
+        try:
+            cursor = collection.find().sort("timestamp", -1).limit(500)
+            for record in cursor:
+                try:
+                    epoch_time = float(record.get("timestamp", "0"))
+                    human_readable_time = datetime.fromtimestamp(epoch_time).strftime('%Y-%m-%d %H:%M:%S')
+                except (ValueError, TypeError):
+                    human_readable_time = "Invalid timestamp format"
+
+                historical_records.append({
+                    "timestamp": human_readable_time,
+                    "temperature": record.get("temperature", "N/A"),
+                    "humidity": record.get("humidity", "N/A")
+                })
+
+        except Exception as e:
+            logging.error(f"Error fetching historical data: {e}")
+
+    return jsonify(historical_records)
+
+
 @app.route('/test-db')
 def test_db():
     """Test route to display all documents in the collection."""
     if collection is not None:
         try:
-            all_data = list(collection.find())  # Fetch all documents
+            all_data = list(collection.find())
             return jsonify(all_data)
         except Exception as e:
             logging.error(f"Error fetching data from MongoDB: {e}")
