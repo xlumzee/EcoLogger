@@ -90,14 +90,14 @@
      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
    }
    #chart-container {
-     height: 400px;
+     height: 500px;
      width: 100%;
      border-radius: 16px;
      overflow: hidden;
      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-     padding: 0;
+     padding: 1rem;
      display: flex;
-     align-items: stretch;
+     align-items: center;
      justify-content: center;
    }
    .settings label {
@@ -152,7 +152,7 @@
  </style>
  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
  <script>
-    let map, marker, refreshInterval = 2000, graphInterval = 30000, temperatureUnit = 'celsius';
+    let map, marker, refreshInterval = 2000, graphInterval = 30000, temperatureUnit = 'celsius', dataPoints = 50;
     let historicalChart;
 
     // Function to fetch the latest data and update the dashboard
@@ -194,7 +194,7 @@
 
     // Fetch historical data and update the chart dynamically
     function fetchHistoricalData() {
-      fetch('/historical-data')
+      fetch(`/historical-data?points=${dataPoints}`)
         .then(response => response.json())
         .then(data => {
           const timestamps = data.map(item => new Date(item.timestamp).toLocaleString());
@@ -221,13 +221,48 @@
             options: {
               responsive: true,
               plugins: {
-                legend: { display: true, position: 'top' },
+                legend: {
+                  display: true,
+                  position: 'top',
+                  labels: {
+                    font: {
+                      size: 16 // Adjust legend font size
+                    }
+                  }
+                }
               },
               scales: {
-                x: { title: { display: true, text: 'Time' } },
-                y: { title: { display: true, text: 'Temperature (°C)' } },
-              },
-            },
+                x: {
+                  title: {
+                    display: true,
+                    text: 'Time',
+                    font: {
+                      size: 16 // Adjust x-axis title font size
+                    }
+                  },
+                  ticks: {
+                    font: {
+                      size: 14 // Adjust x-axis ticks font size
+                    },
+                    maxTicksLimit: 10 // Reduce the number of labels on the x-axis
+                  }
+                },
+                y: {
+                  title: {
+                    display: true,
+                    text: 'Temperature (°C)',
+                    font: {
+                      size: 16 // Adjust y-axis title font size
+                    }
+                  },
+                  ticks: {
+                    font: {
+                      size: 14 // Adjust y-axis ticks font size
+                    }
+                  }
+                }
+              }
+            }
           });
         })
         .catch(error => console.error('Error fetching historical data:', error));
@@ -254,6 +289,11 @@
           clearInterval(refreshTimer);
           refreshTimer = setInterval(updateDashboard, refreshInterval);
         }
+      });
+
+      document.getElementById('data-points').addEventListener('change', (event) => {
+        dataPoints = parseInt(event.target.value);
+        fetchHistoricalData();
       });
     });
  </script>
@@ -303,6 +343,12 @@
    <section id="historical" class="historical">
      <h2>Historical Data</h2>
      <div id="chart-container">
+       <select id="data-points" style="margin-bottom: 1rem;">
+         <option value="50" selected>50 Data Points</option>
+         <option value="500">500 Data Points</option>
+         <option value="2000">2000 Data Points</option>
+         <option value="5000">5000 Data Points</option>
+       </select>
        <canvas id="historical-chart"></canvas>
      </div>
    </section>

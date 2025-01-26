@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from pymongo import MongoClient
 from datetime import datetime
 import logging
@@ -79,29 +79,35 @@ def latest_data():
 
 @app.route('/historical-data')
 def historical_data():
-    """Fetch the last 50 records for historical data visualization."""
-    historical_records = []
+    """Fetch the last X records for historical data visualization."""
+    try:
+        # Get the number of data points from the query parameter
+        points = int(request.args.get('points', 50))
 
-    if collection is not None:
-        try:
-            cursor = collection.find().sort("timestamp", -1).limit(500)
-            for record in cursor:
-                try:
-                    epoch_time = float(record.get("timestamp", "0"))
-                    human_readable_time = datetime.fromtimestamp(epoch_time).strftime('%Y-%m-%d %H:%M:%S')
-                except (ValueError, TypeError):
-                    human_readable_time = "Invalid timestamp format"
+        # Fetch data sorted by timestamp in descending order and limit to `points`
+        cursor = collection.find().sort("timestamp", -1).limit(points)
+        records = list(cursor)
 
-                historical_records.append({
-                    "timestamp": human_readable_time,
-                    "temperature": record.get("temperature", "N/A"),
-                    "humidity": record.get("humidity", "N/A")
-                })
+        # Reverse the order so the newest data is on the right (chronological order)
+        historical_records = []
+        for record in reversed(records):
+            try:
+                epoch_time = float(record.get("timestamp", "0"))
+                human_readable_time = datetime.fromtimestamp(epoch_time).strftime('%Y-%m-%d %H:%M:%S')
+            except (ValueError, TypeError):
+                human_readable_time = "Invalid timestamp format"
 
-        except Exception as e:
-            logging.error(f"Error fetching historical data: {e}")
+            historical_records.append({
+                "timestamp": human_readable_time,
+                "temperature": record.get("temperature", "N/A"),
+                "humidity": record.get("humidity", "N/A")
+            })
 
-    return jsonify(historical_records)
+        return jsonify(historical_records)
+
+    except Exception as e:
+        logging.error(f"Error fetching historical data: {e}")
+        return jsonify({"error": "Failed to fetch historical data."}), 500
 
 
 @app.route('/test-db')
