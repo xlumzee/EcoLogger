@@ -1,0 +1,104 @@
+/* Import external resources */
+@import url("https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css");
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap");
+
+/* Global variables for colors and fonts */
+:root {
+  --primary-color: #4a90e2;
+  --secondary-color: #f5f7fa;
+  --accent-color: #56ab2f;
+  --text-color: #2c3e50;
+  --light-text-color: #ffffff;
+  --font-family: 'Poppins', sans-serif;
+}
+
+/* Global box sizing and font smoothing */
+* {
+  -webkit-font-smoothing: antialiased;
+  box-sizing: border-box;
+}
+
+/* Global body and html settings */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: var(--font-family);
+  background: var(--secondary-color);
+  color: var(--text-color);
+}
+
+/* Accessibility: Focus styles for interactive elements */
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--primary-color) !important;
+  outline-offset: 3px;
+}
+
+/* Styling for anchor tags */
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--primary-color);
+}
+
+/* Button styles for consistency */
+button {
+  font-family: var(--font-family);
+  font-weight: 600;
+  background: var(--primary-color);
+  color: var(--light-text-color);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {
+  background: var(--accent-color);
+  transform: translateY(-2px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* Input and form styles */
+input, select {
+  font-family: var(--font-family);
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 16px;
+}
+
+input:focus, select:focus {
+  border-color: var(--primary-color);
+  outline: none;
+  box-shadow: 0 0 4px rgba(74, 144, 226, 0.4);
+}
+
+/* Image and video default settings */
+img, video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Utility: Responsive container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Utility: Flexbox centering */
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
