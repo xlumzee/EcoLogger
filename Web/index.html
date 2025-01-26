@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Micro Weather Station</title>
+  <link rel="stylesheet" href="globals.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(120deg, #f0f4f8, #d9eaf1);
+      color: #2c3e50;
+    }
+    .header {
+      background: linear-gradient(90deg, #56ab2f, #a8e063);
+      color: #fff;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    .nav-links {
+      display: flex;
+      justify-content: center;
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
+    .nav-links li {
+      margin: 0 1.5rem;
+    }
+    .nav-links a {
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 1.2rem;
+      font-weight: 600;
+      transition: color 0.3s;
+    }
+    .nav-links a:hover {
+      color: #ffdd57;
+    }
+    .dashboard, .live-map, .historical, .settings {
+      padding: 2rem;
+      margin: 2rem;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease-in-out;
+    }
+    .dashboard:hover, .live-map:hover, .historical:hover, .settings:hover {
+      transform: translateY(-10px);
+    }
+    .metrics {
+      display: flex;
+      justify-content: space-around;
+      gap: 1rem;
+    }
+    .metric {
+      background: linear-gradient(135deg, #6dd5ed, #2193b0);
+      color: #fff;
+      padding: 2rem;
+      border-radius: 12px;
+      text-align: center;
+      flex: 1;
+      margin: 0 0.5rem;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .metric:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    }
+    #map-container {
+      height: 400px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    #chart-container {
+      height: 300px;
+      background: #f5f7fa;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .settings label {
+      display: block;
+      margin: 1rem 0 0.5rem;
+      font-weight: 600;
+    }
+    .footer {
+      background: linear-gradient(90deg, #56ab2f, #a8e063);
+      color: #fff;
+      text-align: center;
+      padding: 1.5rem;
+      margin-top: 2rem;
+      font-size: 1rem;
+      box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .nav-links {
+        flex-direction: column;
+        align-items: center;
+      }
+      .nav-links li {
+        margin: 0.5rem 0;
+      }
+      .metrics {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .dashboard, .live-map, .historical, .settings {
+        margin: 1rem;
+        padding: 1rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header {
+        font-size: 1.5rem;
+        padding: 1rem;
+      }
+      .nav-links a {
+        font-size: 1rem;
+      }
+      #map-container, #chart-container {
+        height: 250px;
+      }
+    }
+  </style>
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+</head>
+<body>
+  <header class="header">
+    <h1>Micro Weather Station</h1>
+    <nav>
+      <ul class="nav-links">
+        <li><a href="#dashboard">Dashboard</a></li>
+        <li><a href="#map">Live Map</a></li>
+        <li><a href="#historical">Historical Data</a></li>
+        <li><a href="#settings">Settings</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Dashboard Section -->
+    <section id="dashboard" class="dashboard">
+      <h2>Dashboard</h2>
+      <div class="metrics">
+        <div class="metric">
+          <h3>Temperature</h3>
+          <p>25°C</p>
+        </div>
+        <div class="metric">
+          <h3>Humidity</h3>
+          <p>65%</p>
+        </div>
+        <div class="metric">
+          <h3>Wind Speed</h3>
+          <p>12 km/h</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Live Map Section -->
+    <section id="map" class="live-map">
+      <h2>Live Map</h2>
+      <div id="map-container"></div>
+      <script>
+        var map = L.map('map-container').setView([39.9526, -75.1652], 13); // Default to Philadelphia
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        L.marker([39.9526, -75.1652]).addTo(map)
+          .bindPopup('Default Location: Philadelphia')
+          .openPopup();
+      </script>
+    </section>
+
+    <!-- Historical Data Section -->
+    <section id="historical" class="historical">
+      <h2>Historical Data</h2>
+      <div id="chart-container">Chart Placeholder</div>
+    </section>
+
+    <!-- Settings Section -->
+    <section id="settings" class="settings">
+      <h2>Settings</h2>
+      <form>
+        <label for="units">Units:</label>
+        <select id="units">
+          <option value="celsius">Celsius</option>
+          <option value="fahrenheit">Fahrenheit</option>
+        </select>
+        <br>
+        <label for="update-interval">Update Interval:</label>
+        <input type="number" id="update-interval" min="1" max="60" value="5"> minutes
+      </form>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>&copy; 2025 Micro Weather Station. All rights reserved.</p>
+  </footer>
+</body>
+</html>
