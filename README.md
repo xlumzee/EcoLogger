@@ -1,186 +1,154 @@
-Sensory
-Micro Weather Sensory App
+# EcoLogger – Real‑Time Micro‑Climate Logger
 
-The main idea is:
+> **IoT · Environmental Sensing · 2025**
+>
+> EcoLogger turns low‑cost sensors into a **live micro‑weather dashboard**.  Readings streamed from tiny IoT devices are stored in MongoDB Atlas and delivered to users instantly via WebSockets / Server‑Sent Events.
 
-Your IoT device (or data source) sends new readings to your backend server and stores them in MongoDB Atlas.
-The backend then pushes these new readings to the UI (browser or Streamlit app) using either a WebSocket (e.g., Socket.IO, Django Channels) or Server-Sent Events.
-The UI receives these updates automatically and renders them immediately.
+---
 
+## 📑 Contents
 
-Pipeline
+1. [Why EcoLogger?](#why-ecologger)
+2. [System Architecture](#system-architecture)
+3. [Repository Layout](#repository-layout)
+4. [Getting Started (Local Dev)](#getting-started-local-dev)
+5. [Deploy to the Cloud](#deploy-to-the-cloud)
+6. [API Reference](#api-reference)
+7. [Extending](#extending)
+8. [Contributing](#contributing)
+9. [License](#license)
 
-UI
+---
 
-Description: The user interface will display real-time weather data received from the backend.
-Data Retrieval
+## Why EcoLogger?
 
-Description: Data is retrieved from IoT devices and stored in MongoDB Atlas.
-Backend
+Home weather stations and indoor environmental sensors often silo data on‑device or in proprietary clouds.  EcoLogger provides:
 
-Database: MongoDB
-Framework: Django
+* **Vendor‑agnostic ingestion** – HTTP & MQTT endpoints for any ESP32 / Raspberry Pi sensor payload.
+* **Instant updates** – Backend broadcasts new docs to connected browsers — no polling.
+* **Pluggable storage** – Defaults to MongoDB Atlas but swap in PostgreSQL, InfluxDB or DynamoDB.
+* **Open‑source dashboards** – React + Socket.IO frontend or a one‑file Streamlit app for quick visualisation.
 
-How to Deploy the Django Server
+---
 
-Follow these steps to set up and deploy the Django server:
+## System Architecture
 
-1. Create a Project Folder
+```
+┌────────────┐      🔌 HTTP / MQTT         ┌────────────────┐       WebSocket / SSE      ┌──────────────┐
+│  IoT Node  │ ─────────────────────────▶ │  Django API    │ ─────────────────────────▶ │   Frontend   │
+│  (ESP32)   │  JSON payload              │  + Channels     │  JSON doc broadcast       │  React / St  │
+└────────────┘                             │  (Backend)     │                            │   reamlit    │
+        ▲                                   │    |           │                            └──────────────┘
+        │                                   │    ▼           │                                  ▲
+        │                                   │ MongoDB Atlas  │          REST export           │
+        └───────────────  OTA / Wi‑Fi  ─────┴───────────────┘  CSV / Parquet / InfluxDB  ───┘
+```
 
-1st. Create a project folder (e.g., hello_django) and navigate into it:
- mkdir hello_django
- cd hello_django
+**Key Components**
 
- 2. Create a Virtual Environment
+* **IoT Client** (folder `nodejs/`) – sample NodeMCU firmware sending JSON `{temp, humidity, pressure, timestamps}` every 30 s.
+* **Backend Server** (folder `BackendServer/`) – Django 4 + Django REST Framework; real‑time via **Django Channels** & Redis.
+* **Database** (folder `DataBase/`) – MongoDB Atlas cluster; schema described in `DataBase/schemas/sensor_reading.bson`.
+* **Web UI** (folder `Web/`) – React 18 + Socket.IO; pulls the latest 100 readings and listens for `reading:new` events.
+* **hello\_django/** – quick‑start tutorial for a minimal Django project (kept for educational context).
 
-Create a virtual environment using Python 3. Replace .venv with your preferred environment name.
+> The MVP logic mirrors the short README stub in the original repo: IoT device ➜ Mongo ➜ WebSocket ➜ UI ([raw.githubusercontent.com](https://raw.githubusercontent.com/xlumzee/EcoLogger/main/README.md))
 
-Linux: 
-sudo apt-get install python3-venv    # If needed
-python3 -m venv .venv
-source .venv/bin/activate
+---
 
+## Repository Layout
 
+```
+EcoLogger/
+├── BackendServer/           # Django project & apps
+│   ├── core/                # settings, urls, ASGI, Consumers
+│   ├── sensors/             # models, serializers, views
+│   └── requirements.txt
+├── DataBase/                # Mongo schema dumps + migration helpers
+├── Web/                     # React UI (Vite + TailwindCSS)
+│   ├── src/
+│   └── package.json
+├── nodejs/                  # ESP32 / NodeMCU firmware (JavaScript SDK example)
+├── hello_django/            # step‑by‑step beginner walkthrough (can be removed in production)
+├── docker-compose.yml       # one‑command dev stack (Django + Mongo + Redis)
+└── README_EcoLogger.md      # you’re here
+```
 
-MAC:
-python3 -m venv .venv
-source .venv/bin/activate
+---
 
+## Getting Started (Local Dev)
 
-Windows: 
-py -3 -m venv .venv
-.venv\scripts\activate
+### 1. Clone & bootstrap
 
+```bash
+git clone https://github.com/xlumzee/EcoLogger.git
+cd EcoLogger
+```
 
-3. Select the Python Interpreter in VS Code
+### 2. Spin up the dev stack
 
-Open the VS Code command palette (Ctrl+Shift+P or Cmd+Shift+P on macOS).
-Select Python: Select Interpreter.
-Choose the virtual environment in your project folder (e.g., ./.venv or \.venv).
+```bash
+# requires Docker & Docker Compose v2
+cp BackendServer/.env.example BackendServer/.env  # add your Mongo URI
+cp Web/.env.example Web/.env                      # add API base URL
 
-4. Verify the Virtual Environment
+docker compose up --build   # builds Django, React, pulls Mongo & Redis images
+```
 
-The status bar in VS Code should display the Python version and virtual environment.
-5. Update pip
+* Django API ➜ [http://localhost:8000/api/readings/](http://localhost:8000/api/readings/)
+* React UI  ➜ [http://localhost:5173/](http://localhost:5173/)
 
-Update pip in the virtual environment:
+### 3. Push fake data (optional)
 
-Command: python -m pip install --upgrade pip
+```bash
+python BackendServer/scripts/seed_fake_data.py --n 500
+```
 
- 6. Install Django
+The dashboard will update in real time.
 
-Install Django in the virtual environment:
+---
 
-Command: python -m pip install django
+## Deploy to the Cloud
 
- 7. Create the Django Project
+| Target                | Guide                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------- |
+| **Render.com**        | 1‑click blueprint `render.yaml` – provisions a free web‑service + docDB‑compatible Mongo. |
+| **Heroku**            | `Procfile`, `heroku.yml`, and a **MongoDB Atlas Add‑On** sample script included.          |
+| **AWS ECS (Fargate)** | `infrastructure/ecs/` holds Terraform modules (optional).                                 |
 
-Create a Django project using the following command:
+For ESP32 firmware OTA builds, see `nodejs/README.md`.
 
-Command: django-admin startproject web_project 
+---
 
-This creates the following file structure:
+## API Reference
 
-manage.py: Django's command-line utility.
-web_project/: Contains project settings and configurations.
-__init__.py: Marks the folder as a Python package.
-asgi.py: Entry point for ASGI-compatible web servers.
-settings.py: Project settings.
-urls.py: URL routing for the project.
-wsgi.py: Entry point for WSGI-compatible web servers.
+| **Endpoint**     | **Method** | **Description**                                                        |
+| ---------------- | ---------- | ---------------------------------------------------------------------- |
+| `/api/readings/` | `GET`      | List latest 100 readings (paginated)                                   |
+| `/api/readings/` | `POST`     | Push single sensor payload `{device_id, temp, humidity, pressure, ts}` |
+| `/ws/readings/`  | WebSocket  | Subscribe; backend emits `{reading: {...}}` every insert               |
 
+Authentication is handled via simple API keys (optional) using the `X‑API‑KEY` header.
 
-8. Create the Development Database
+---
 
-Run the following command to create an empty development database:
+## Extending
 
-Command: python manage.py migrate.
+* 🗺️ **Add GPS & mapping** – store `lat, lon` to visualise IoT network coverage.
+* 📈 **Historical analytics** – dump to InfluxDB & display Grafana dashboards.
+* 🤖 **Alerting** – add `celery` worker to trigger email/SMS if readings exceed thresholds.
+* 🕵️‍♀️ **Security** – enable JWT auth & rate‑limiting on POST endpoint.
 
- - This creates a default SQLite database (db.sqlite3) for development purposes.
+Road‑map items tracked in GitHub Issues.
 
+---
 
-9. Run the Development Server
+## Contributing
 
-Start the Django development server:
+PRs and issues welcome!  Please run `pre‑commit run --all-files` before submitting.
 
- Commnand: python manage.py runserver
+---
 
- - The server runs on http://127.0.0.1:8000/ by default.
-- Open the URL in your browser to verify the Django project.
+## License
 
-10. Create a Django App
-
-1. Create a Django app named hello:
-
-Command: python manage.py startapp hello
-
-This creates a folder named hello with the following files:
-views.py: Contains functions to define pages.
-models.py: Contains classes defining data objects.
-migrations/: Used for database version management.
-
-
-2. Modify hello/views.py:
-
- Code: from django.http import HttpResponse
-
- def home(request):
-     return HttpResponse("Hello, Django!")
-
- 3. Create hello/urls.py:
-
-    Code: from django.urls import path
-from hello import views
-
-urlpatterns = [
-    path("", views.home, name="home"),
-]
-
-
-4. Update web_project/urls.py:
-
-   from django.contrib import admin
-from django.urls import include, path
-
-urlpatterns = [
-    path("", include("hello.urls")),
-    path('admin/', admin.site.urls)
-]
-5th. Save all modified files.
-
-
-6th. Run the development server again:
-
-python manage.py runserver
-Open http://127.0.0.1:8000/ in your browser to see the "Hello, Django!" page.
-
-File Structure:
-
-hello_django/
-├── .venv/
-├── manage.py
-├── web_project/
-│   ├── __init__.py
-│   ├── asgi.py
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py
-└── hello/
-    ├── __init__.py
-    ├── admin.py
-    ├── apps.py
-    ├── migrations/
-    ├── models.py
-    ├── tests.py
-    └── views.py
-
-
-    
-
-
-
-
-
-
-
-
+Released under the **MIT License**.  See `LICENSE` for details.
